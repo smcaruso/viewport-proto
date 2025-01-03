@@ -28,6 +28,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 h1 {
@@ -36,9 +37,7 @@ h1 {
 }
 
 #app {
-  /* max-width: 1280px; */
   margin: 0 auto;
-  /* padding: 2rem; */
   text-align: center;
 }
 
@@ -80,6 +79,112 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+canvas {
+  overflow: hidden;
+}
+
+.viewport-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 32px;
+  cursor: grab;
+  transition: transform 0.25s;
+}
+
+.viewport-icon:hover {
+  transform-origin: center;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.viewport-icon img {
+  user-select: none;
+  pointer-events: none;
+}
+
+.viewport-line {
+  position: absolute;
+  border-left: 1px dashed #ffffff;
+  width: 0;
+  transition: opacity 0.25s;
+}
+
+.viewport-line:not(.show) {
+  opacity: 0;
+}
+
+.viewport-line:after {
+  content: '×';
+  position: absolute;
+  transform: translate(-50%, 50%);
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewport-arrow {
+  position: absolute;
+  width: 64px; /* Arrow length */
+  height: 3px; /* Arrow thickness */
+  left: 50%;
+  top: 50%;
+  transform-origin: left center; /* Rotate around the center of viewport-icon */
+  transform: translateX(-50%);
+}
+
+.viewport-arrowhead {
+  position: absolute;
+  right: -12px;
+  top: -5px;
+  width: 0;
+  height: 0;
+  /* border-left: 6px solid white; */
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+
+#hierarchy {
+  position: absolute;
+  top: 0;
+  right: 3em;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 0.25rem;
+}
+
+.hierarchy-item {
+  background: #1a1a1a;
+  width: 100%;
+  display: flex;
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid #00000000;
+}
+
+.hierarchy-item:hover {
+  cursor: pointer;
+  background: #1d1d1d;
+}
+
+.hierarchy-item.selected {
+  border: 1px solid #343ded;
+}
+
+.hierarchy-item:before {
+  content: "📦";
 }
 
 @media (prefers-color-scheme: light) {
