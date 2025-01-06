@@ -15,7 +15,9 @@ appContainer.appendChild(renderer.domElement)
 
 // renderer settings
 renderer.setClearColor(0x242424, 0)
+renderer.setPixelRatio(window.devicePixelRatio);
 scene.fog = new three.Fog(0x242424, 5, 100)
+renderer.antialias = true
 
 // event listener to auto-resize the renderer when the window is resized
 window.addEventListener('resize', () => {
@@ -26,7 +28,7 @@ window.addEventListener('resize', () => {
 
 // add grid and axes helpers to scene
 const gridHelper = new three.GridHelper(1000, 1000, 0x444444, 0x444444)
-const axesHelper = new three.AxesHelper(2)
+const axesHelper = new three.AxesHelper(1)
 axesHelper.position.y = 0.01
 scene.add(gridHelper, axesHelper)
 
@@ -34,7 +36,7 @@ scene.add(gridHelper, axesHelper)
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 controls.zoomToCursor = true
-camera.position.set( 20, 20, 20 )
+camera.position.set( 5, 5, 5 )
 controls.target.set(0, 0, 0)
 controls.update()
 
@@ -44,10 +46,10 @@ const testPointLight = new three.Object3D()
 const testSpotLight = new three.Object3D()
 const testColliderBox = new three.Object3D()
 
-// move test objects to random positions between -10 and 10 in the x and z azes and 0-5 in the y axis
-testPointLight.position.set(Math.random() * 30 - 10, Math.random() * 10, Math.random() * 30 - 10)
-testSpotLight.position.set(Math.random() * 30 - 10, Math.random() * 10, Math.random() * 30 - 10)
-testColliderBox.position.set(Math.random() * 30 - 10, Math.random() * 10, Math.random() * 30 - 10)
+// move test objects to random positions between -5 and 5 in the x and z azes and 0-2 in the y axis
+testPointLight.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
+testSpotLight.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
+testColliderBox.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
 
 viewportIcons.push(
   new ViewportIcon("test point light", "point", testPointLight, camera),
@@ -63,9 +65,11 @@ function animate() {
     controls.update()
     renderer.render(scene, camera)
 
+    // testSpotLight.rotation.x += 0.01
+    // testSpotLight.rotation.y += 0.01
+
     // get the positions of test objects in screen space and move the viewport icons to those positions
     viewportIcons.forEach(icon => {icon.updatePosition(camera)})
-
 }
 
 animate()

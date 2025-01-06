@@ -15,7 +15,14 @@ import spot from "/spot.svg"
 import trigger from "/trigger.svg"
 import video from "/video.svg"
 
-import * as THREE from "three"
+import * as three from "three"
+import gsap from "gsap"
+
+import { Line2 } from "three/examples/jsm/lines/Line2.js"
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
+import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js"
+
+import BoundingBox from "./boundingBox.js"
 
 export default class ViewportIcon {
 
@@ -27,18 +34,39 @@ export default class ViewportIcon {
     this.directional = directional
     this.arrowElement = null
 
+    this.forward = new three.Object3D()
+    this.forward.translateZ(1.5)
+    this.object.add(this.forward)
+
+    let worldPosition = new three.Vector3()
+    this.object.getWorldPosition(worldPosition)
+
+    this.groundProjection = new three.Object3D()
+    this.groundProjection.position.set(0, worldPosition.y * -1, 0)
+    this.object.add(this.groundProjection)
+    
     this.camera = camera
 
-    this.iconColor = "#FFFFFF59"
+    this.colors = {
+      icon: "#797979",
+
+    }
+    this.iconColor = "#797979"
+    this.iconBGOpacity = "ff"
 
     this.element = this.drawElement()
     this.hierarchyItem = this.setupHierarchy()
     this.yLine = this.drawLine()
     this.selected = false
-    
-    
+
+    this.boundingBox = null
+
+    if (type === "rigidbody") {
+      this.boundingBox = new BoundingBox(2, 2, 1)
+      this.object.add(this.boundingBox)
+    }
+
     document.querySelector("#app").appendChild(this.element)
-    document.querySelector("#app").appendChild(this.yLine)
 
     this.element.addEventListener("click", this.click.bind(this))
     this.element.addEventListener("pointerenter", this.hover.bind(this))
@@ -50,7 +78,7 @@ export default class ViewportIcon {
 
     const element = document.createElement("div")
     element.classList.add("viewport-icon")
-    element.style.background = this.iconColor
+    element.style.background = this.iconColor + this.iconBGOpacity
 
     const svgElement = document.createElement("img")
 
@@ -107,19 +135,18 @@ export default class ViewportIcon {
 
     if (this.directional) {
 
-      const arrow = document.createElement("div");
-      arrow.classList.add("viewport-arrow");
-      arrow.style.background = `linear-gradient(to right, #ffffff00 49%, ${this.iconColor} 49%)`
+      const arrow = document.createElement("div")
+      arrow.classList.add("viewport-arrow")
+      arrow.style.background = this.iconColor + this.iconBGOpacity
 
-      const arrowHead = document.createElement("div");
-      arrowHead.classList.add("viewport-arrowhead");
-      arrowHead.style.borderLeft = `12px solid ${this.iconColor}`;
+      const arrowHead = document.createElement("div")
+      arrowHead.classList.add("viewport-arrowhead")
+      arrowHead.style.borderLeft = `16px solid ${this.iconColor + this.iconBGOpacity}`
 
-      arrow.appendChild(arrowHead);
-      element.appendChild(arrow);
+      arrow.appendChild(arrowHead)
+      element.appendChild(arrow)
 
-
-      this.arrowElement = arrow; // Store reference for updating position
+      this.arrowElement = arrow // Store reference for updating position
 
     }
 
@@ -131,14 +158,35 @@ export default class ViewportIcon {
   }
 
   drawLine() {
-    const line = document.createElement("div")
-    line.classList.add("viewport-line")
+
+    const lineMaterial = new LineMaterial({ color: 0xffffff, dashed: true, linewidth: 2, dashSize: 0.1, gapSize: 0.075, transparent: true, opacity: 0 })
+
+    const lineGeometry = new LineGeometry()
+    const points = [new three.Vector3(0, 0, 0), this.groundProjection.position ]
+    lineGeometry.setFromPoints(points)
+
+    const line = new Line2(lineGeometry, lineMaterial)
+    line.computeLineDistances()
+
+    const circlePoints = [];
+    for (let i = 0; i <= 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        circlePoints.push(0.1 * Math.cos(angle), 0, 0.1 * Math.sin(angle));
+    }
+
+    const circleGeometry = new LineGeometry();
+    circleGeometry.setPositions(circlePoints);
+    const circle = new Line2(circleGeometry, lineMaterial);
+    // circle.computeLineDistances(); // Required for dashes to work
+    circle.position.copy(this.groundProjection.position)
+
+    this.object.add(line, circle)
 
     return line
   }
 
   updatePosition() {
-        const pos = new THREE.Vector3()
+        const pos = new three.Vector3()
         pos.setFromMatrixPosition(this.object.matrixWorld)
         pos.project(this.camera)
 
@@ -147,51 +195,56 @@ export default class ViewportIcon {
         this.element.style.left = `${left}px`
         this.element.style.top =  `${top}px`
 
-        // Project the ground position (same X, Z but Y = 0)
-        const groundPos = new THREE.Vector3(this.object.position.x, 0, this.object.position.z)
-        groundPos.project(this.camera)
-      
-        // const groundX = (groundPos.x * 0.5 + 0.5) * window.innerWidth
-        const groundTop = (-groundPos.y * 0.5 + 0.5) * window.innerHeight
-      
-        this.yLine.style.left = `${left}px`
-        this.yLine.style.top = `${top + 36}px`
-        this.yLine.style.height = `${groundTop - (top + 36)}px`
-
         if (this.directional && this.arrowElement) {
 
-          const originPos = new THREE.Vector3(0, 0, 0);
-          originPos.project(this.camera);
+          const originPos = this.forward.getWorldPosition(new three.Vector3())
+          originPos.project(this.camera)
 
-          const originX = (originPos.x * 0.5 + 0.5) * window.innerWidth;
-          const originY = (-originPos.y * 0.5 + 0.5) * window.innerHeight;
+          const originX = (originPos.x * 0.5 + 0.5) * window.innerWidth
+          const originY = (-originPos.y * 0.5 + 0.5) * window.innerHeight
 
-          const dx = originX - left;
-          const dy = originY - top;
-          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const dx = originX - left
+          const dy = originY - top
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI)
   
-          this.arrowElement.style.transform = `rotate(${angle}deg)`;
+          this.arrowElement.style.transform = `rotate(${angle}deg) translate(32px)`
       }
   }
 
   hover() {
-    this.yLine.classList.add("show")
+    gsap.to(this.yLine.material, { opacity: 1, linewidth: 2, duration: 0.25 })
+    if (this.boundingBox && !this.selected) {
+      this.boundingBox.hover()
+    }
   }
 
   unhover() {
-    if (!this.selected) { this.yLine.classList.remove("show") }
+    if (!this.selected) { gsap.to(this.yLine.material, { opacity: 0, duration: 0.25 })
+    } else { gsap.to(this.yLine.material, { linewidth: 0.5,  duration: 0.25 }) }
+    if (this.boundingBox && !this.selected) {
+      this.boundingBox.unhover()
+    }
   }
 
   click() {
 
     if (!this.selected) {
+      gsap.to(this.yLine.material, { linewidth: 0.5, duration: 0.25 })
       this.selected = true
+      this.element.classList.add("selected")
       this.hierarchyItem.classList.add("selected")
-      this.yLine.classList.add("show")
+      if (this.boundingBox) {
+        this.boundingBox.hover()
+        this.boundingBox.select()
+      }
     } else {
+      gsap.to(this.yLine.material, { linewidth: 2, duration: 0.25 })
       this.selected = false
       this.hierarchyItem.classList.remove("selected")
-      this.yLine.classList.remove("show")
+      this.element.classList.remove("selected")
+      if (this.boundingBox) {
+        this.boundingBox.unhover()
+      }
     }
 
   }
