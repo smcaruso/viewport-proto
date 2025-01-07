@@ -23,6 +23,7 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js"
 
 import BoundingBox from "./boundingBox.js"
+import ColorPicker from "./colorPicker.js"
 
 export default class ViewportIcon {
 
@@ -47,12 +48,7 @@ export default class ViewportIcon {
     
     this.camera = camera
 
-    this.colors = {
-      icon: "#797979",
-
-    }
     this.iconColor = "#797979"
-    this.iconBGOpacity = "ff"
 
     this.element = this.drawElement()
     this.hierarchyItem = this.setupHierarchy()
@@ -71,6 +67,7 @@ export default class ViewportIcon {
     this.element.addEventListener("click", this.click.bind(this))
     this.element.addEventListener("pointerenter", this.hover.bind(this))
     this.element.addEventListener("pointerleave", this.unhover.bind(this))
+    this.element.addEventListener("contextmenu", this.rightClick.bind(this));
 
   }
 
@@ -78,70 +75,41 @@ export default class ViewportIcon {
 
     const element = document.createElement("div")
     element.classList.add("viewport-icon")
-    element.style.background = this.iconColor + this.iconBGOpacity
+    element.style.background = this.iconColor
 
     const svgElement = document.createElement("img")
 
-    switch (this.iconType) {
-      case "audio":
-        svgElement.src = audio
-        break
-      case "box":
-        svgElement.src = box
-        break
-      case "camera":
-        svgElement.src = camera
-        break
-      case "cylinder":
-        svgElement.src = cylinder
-        break
-      case "directional":
-        svgElement.src = directional
-        break
-      case "envmap":
-        svgElement.src = envmap
-        break
-      case "hemisphere":
-        svgElement.src = hemisphere
-        break
-      case "mountpoint":
-        svgElement.src = mountpoint
-        break
-      case "point":
-        svgElement.src = point
-        break
-      case "portal":
-        svgElement.src = portal
-        break
-      case "rigidbody":
-        svgElement.src = rigidbody
-        break
-      case "spawnpoint":
-        svgElement.src = spawnpoint
-        break
-      case "sphere":
-        svgElement.src = sphere
-        break
-      case "spot":
-        svgElement.src = spot
-        break
-      case "trigger":
-        svgElement.src = trigger
-        break
-      case "video":
-        svgElement.src = video
-        break
-    }
+    const iconMap = new Map([
+      ["audio", audio],
+      ["box", box],
+      ["camera", camera],
+      ["cylinder", cylinder],
+      ["directional", directional],
+      ["envmap", envmap],
+      ["hemisphere", hemisphere],
+      ["mountpoint", mountpoint],
+      ["point", point],
+      ["portal", portal],
+      ["rigidbody", rigidbody],
+      ["spawnpoint", spawnpoint],
+      ["sphere", sphere],
+      ["spot", spot],
+      ["trigger", trigger],
+      ["video", video]
+    ])
+
+    if (iconMap.has(this.iconType)) { svgElement.src = iconMap.get(this.iconType) }
+    else { console.warn(`Unknown icon type: ${this.iconType}`) }
 
     if (this.directional) {
 
       const arrow = document.createElement("div")
       arrow.classList.add("viewport-arrow")
-      arrow.style.background = this.iconColor + this.iconBGOpacity
+      arrow.style.background = this.iconColor
 
       const arrowHead = document.createElement("div")
       arrowHead.classList.add("viewport-arrowhead")
-      arrowHead.style.borderLeft = `16px solid ${this.iconColor + this.iconBGOpacity}`
+      arrowHead.style.borderLeft = `16px solid ${this.iconColor}`
 
       arrow.appendChild(arrowHead)
       element.appendChild(arrow)
@@ -157,9 +125,31 @@ export default class ViewportIcon {
 
   }
 
+  setupHierarchy() {
+
+    const hierarchy = document.querySelector("#hierarchy")
+    const hierarchyItem = document.createElement("div")
+    hierarchyItem.classList.add("hierarchy-item")
+    hierarchyItem.textContent = this.iconName
+    hierarchy.appendChild(hierarchyItem)
+
+    hierarchyItem.addEventListener("click",this.click.bind(this))
+
+    return hierarchyItem
+
+  }
+
   drawLine() {
 
-    const lineMaterial = new LineMaterial({ color: 0xffffff, dashed: true, linewidth: 2, dashSize: 0.1, gapSize: 0.075, transparent: true, opacity: 0 })
+    const lineMaterial = new LineMaterial({
+      color: 0xffffff,
+      dashed: true,
+      linewidth: 2,
+      dashSize: 0.1,
+      gapSize: 0.075,
+      transparent: true,
+      opacity: 0
+    })
 
     const lineGeometry = new LineGeometry()
     const points = [new three.Vector3(0, 0, 0), this.groundProjection.position ]
@@ -171,13 +161,13 @@ export default class ViewportIcon {
     const circlePoints = [];
     for (let i = 0; i <= 16; i++) {
         const angle = (i / 16) * Math.PI * 2;
-        circlePoints.push(0.1 * Math.cos(angle), 0, 0.1 * Math.sin(angle));
+        circlePoints.push(0.1 * Math.cos(angle), 0, 0.1 * Math.sin(angle))
     }
 
-    const circleGeometry = new LineGeometry();
-    circleGeometry.setPositions(circlePoints);
-    const circle = new Line2(circleGeometry, lineMaterial);
-    // circle.computeLineDistances(); // Required for dashes to work
+    const circleGeometry = new LineGeometry()
+    circleGeometry.setPositions(circlePoints)
+    const circle = new Line2(circleGeometry, lineMaterial)
+    // circle.computeLineDistances() // Required for dashes to work - intentionally misused here
     circle.position.copy(this.groundProjection.position)
 
     this.object.add(line, circle)
@@ -249,18 +239,9 @@ export default class ViewportIcon {
 
   }
 
-  setupHierarchy() {
-
-    const hierarchy = document.querySelector("#hierarchy")
-    const hierarchyItem = document.createElement("div")
-    hierarchyItem.classList.add("hierarchy-item")
-    hierarchyItem.textContent = this.iconName
-    hierarchy.appendChild(hierarchyItem)
-
-    hierarchyItem.addEventListener("click",this.click.bind(this))
-
-    return hierarchyItem
-
-  }
+  rightClick(event) {
+    event.preventDefault()
+    new ColorPicker(this, event)
+}
 
 }

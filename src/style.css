@@ -51,11 +51,12 @@ canvas {
   justify-content: center;
   border-radius: 32px;
   cursor: grab;
-  transition: transform 0.25s, box-shadow 0.1s, filter 0.25s;
+  transition: transform 0.25s, box-shadow 0.1s, filter 0.25s, background 0.25s;
   box-shadow: 0 0 24px #00000022;
 }
 
-.viewport-icon.selected {
+.viewport-icon.selected,
+.viewport-icon.selected .viewport-arrow {
   filter: brightness(1.1);
   box-shadow: 0 0 16px #ffffff59;
 }
@@ -103,7 +104,7 @@ canvas {
   left: 50%;
   top: 50%;
   transform-origin: left center;
-  /* transform: translateX(-50%); */
+  transition: background 0.25s;
 }
 
 .viewport-arrowhead {
@@ -115,6 +116,7 @@ canvas {
   /* border-left: 6px solid white; */
   border-top: 9px solid transparent;
   border-bottom: 9px solid transparent;
+  transition: border-left 0.25s;
 }
 
 #hierarchy {
@@ -149,4 +151,30 @@ canvas {
 
 .hierarchy-item:before {
   content: "📦";
+}
+
+.color-picker {
+  position: absolute;
+  background: #14161999;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 4px 4px 16px #00000059;
+}
+
+.color-picker .color {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: scale 0.25s;
+}
+
+.color-picker .color:hover {
+  scale: 1.1;
 }
