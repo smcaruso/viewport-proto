@@ -57,7 +57,7 @@ export default class BoundingBox extends three.Object3D {
 
     if (this.children[0] && this.children[0].type === "LineSegments") {
       this.children[0].material.color.set(0xF3A2FF)
-      gsap.to(this.cornerMaterial, { opacity: 1, duration: 0.25, value: 1 })
+      gsap.to(this.cornerMaterial, { opacity: 1, duration: 0.25 })
     }
 
   }
@@ -66,7 +66,7 @@ export default class BoundingBox extends three.Object3D {
 
     if (this.children[0] && this.children[0].type === "LineSegments") {
       this.children[0].material.color.set(0x696969)
-      gsap.to(this.cornerMaterial, { opacity: 0.5, duration: 0.25, value: 1 })
+      gsap.to(this.cornerMaterial, { opacity: 0.5, duration: 0.25 })
     }
 
   }

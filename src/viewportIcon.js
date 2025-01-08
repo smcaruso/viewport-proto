@@ -24,6 +24,8 @@ import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js"
 
 import BoundingBox from "./boundingBox.js"
 import ColorPicker from "./colorPicker.js"
+import HelperLines from "./helperLines.js"
+import Comment from "./comment.js"
 
 export default class ViewportIcon {
 
@@ -53,7 +55,16 @@ export default class ViewportIcon {
     this.element = this.drawElement()
     this.hierarchyItem = this.setupHierarchy()
     this.yLine = this.drawLine()
+    
     this.selected = false
+    this.grabbing = false
+    this.drag = this.drag.bind(this) // reference allows the removal of the event listener
+    this.raycaster = new three.Raycaster()
+    this.intersectPlane = new three.Plane(new three.Vector3(0, 1, 0))
+    this.helperLines = new HelperLines(this.object)
+    this.cursorStart = {x: null, y: null}
+    this.dragOperationStarted = false
+    this.cursorStartObjectY = null
 
     this.boundingBox = null
 
@@ -64,10 +75,30 @@ export default class ViewportIcon {
 
     document.querySelector("#app").appendChild(this.element)
 
-    this.element.addEventListener("click", this.click.bind(this))
     this.element.addEventListener("pointerenter", this.hover.bind(this))
     this.element.addEventListener("pointerleave", this.unhover.bind(this))
-    this.element.addEventListener("contextmenu", this.rightClick.bind(this));
+    this.element.addEventListener("contextmenu", this.rightClick.bind(this))
+    this.element.addEventListener("pointerdown", (event) => {
+
+      this.cursorStart.x = event.clientX
+      this.cursorStart.y = event.clientY
+      this.cursorStartObjectY = this.object.position.y
+
+      window.addEventListener("pointermove", this.drag)
+      document.body.style.cursor = "grabbing"
+      this.grabbing = true
+      this.helperLines.start(this.object.position)
+    })
+
+    window.addEventListener("pointerup", (event) => {
+      const delta = Math.abs(event.clientX - this.cursorStart.x) + Math.abs(event.clientY - this.cursorStart.y)
+      if (delta < 15) { this.toggleSelection() } 
+      this.dragOperationStarted = false
+      window.removeEventListener("pointermove", this.drag)
+      document.body.style.cursor = "grab"
+      this.grabbing = false
+      this.helperLines.stop()
+    })
 
   }
 
@@ -133,7 +164,9 @@ export default class ViewportIcon {
     hierarchyItem.textContent = this.iconName
     hierarchy.appendChild(hierarchyItem)
 
-    hierarchyItem.addEventListener("click",this.click.bind(this))
+    hierarchyItem.addEventListener("click",this.toggleSelection.bind(this))
+    hierarchyItem.addEventListener("pointerenter", this.hover.bind(this))
+    hierarchyItem.addEventListener("pointerleave", this.unhover.bind(this))
 
     return hierarchyItem
 
@@ -158,9 +191,9 @@ export default class ViewportIcon {
     const line = new Line2(lineGeometry, lineMaterial)
     line.computeLineDistances()
 
-    const circlePoints = [];
+    const circlePoints = []
     for (let i = 0; i <= 16; i++) {
-        const angle = (i / 16) * Math.PI * 2;
+        const angle = (i / 16) * Math.PI * 2
         circlePoints.push(0.1 * Math.cos(angle), 0, 0.1 * Math.sin(angle))
     }
 
@@ -175,7 +208,10 @@ export default class ViewportIcon {
     return line
   }
 
-  updatePosition() {
+  updatePosition(force = false) {
+
+        if (this.grabbing && !force) { return }
+
         const pos = new three.Vector3()
         pos.setFromMatrixPosition(this.object.matrixWorld)
         pos.project(this.camera)
@@ -202,21 +238,28 @@ export default class ViewportIcon {
   }
 
   hover() {
+    document.body.style.cursor = "grab"
     gsap.to(this.yLine.material, { opacity: 1, linewidth: 2, duration: 0.25 })
     if (this.boundingBox && !this.selected) {
       this.boundingBox.hover()
     }
+
+    new Comment(`hovering ${this.iconName}`)
   }
 
   unhover() {
+    if (this.grabbing) { return }
+    document.body.style.cursor = "default"
     if (!this.selected) { gsap.to(this.yLine.material, { opacity: 0, duration: 0.25 })
     } else { gsap.to(this.yLine.material, { linewidth: 0.5,  duration: 0.25 }) }
     if (this.boundingBox && !this.selected) {
       this.boundingBox.unhover()
     }
+
+    new Comment(`unhovering ${this.iconName}`)
   }
 
-  click() {
+  toggleSelection() {
 
     if (!this.selected) {
       gsap.to(this.yLine.material, { linewidth: 0.5, duration: 0.25 })
@@ -227,6 +270,7 @@ export default class ViewportIcon {
         this.boundingBox.hover()
         this.boundingBox.select()
       }
+      new Comment(`selecting ${this.iconName}`)
     } else {
       gsap.to(this.yLine.material, { linewidth: 2, duration: 0.25 })
       this.selected = false
@@ -235,6 +279,8 @@ export default class ViewportIcon {
       if (this.boundingBox) {
         this.boundingBox.unhover()
       }
+      new Comment(`unselecting ${this.iconName}`)
+
     }
 
   }
@@ -242,6 +288,74 @@ export default class ViewportIcon {
   rightClick(event) {
     event.preventDefault()
     new ColorPicker(this, event)
-}
+    new Comment(`opening color picker`)
+
+  }
+
+  drag(event) {
+
+    event.preventDefault()
+
+    const delta = Math.abs(event.clientX - this.cursorStart.x) + Math.abs(event.clientY - this.cursorStart.y)
+    if (!this.grabbing || (delta < 20 && !this.dragOperationStarted)) { return }
+
+    this.dragOperationStarted = true
+
+    if (event.shiftKey) {
+      
+      const deltaY = event.clientY - this.cursorStart.y;
+      const moveFactor = 0.01; // Adjust for sensitivity
+      this.object.position.y = this.cursorStartObjectY + -deltaY * moveFactor;
+      this.updatePosition(true)
+      
+      this.object.children.forEach(child => {
+        if (child.isLine2) child.removeFromParent()
+      })
+
+      let worldPosition = new three.Vector3()
+      this.object.getWorldPosition(worldPosition)
+      this.groundProjection.position.set(0, worldPosition.y * -1, 0)
+      this.yLine = this.drawLine()
+      this.yLine.material.opacity = 1
+
+      return
+
+    }
+
+    if (event.altKey && this.boundingBox) {
+      const deltaX = event.clientX - this.cursorStart.x
+      const deltaY = event.clientY - this.cursorStart.y
+      if (delta > 5) {
+        this.cursorStart.x = event.clientX
+        this.cursorStart.y = event.clientY
+      }
+      deltaX > 0 ? this.boundingBox.rotateY(Math.PI * 0.02) : this.boundingBox.rotateY(Math.PI * -0.02)
+      return
+
+    }
+
+    // Convert screen coordinates to normalized device coordinates (NDC)
+    const ndcX = (event.clientX / window.innerWidth) * 2 - 1
+    const ndcY = -(event.clientY / window.innerHeight) * 2 + 1
+
+    // Find the intersection point with the adjusted XZ plane
+    this.raycaster.setFromCamera(new three.Vector2(ndcX, ndcY), this.camera)
+    const objectY = this.object.position.y
+    this.intersectPlane.constant = -this.object.position.y
+
+    const intersection = new three.Vector3()
+    this.raycaster.ray.intersectPlane(this.intersectPlane, intersection)
+
+    if (!intersection) return
+
+    this.element.style.left = `${event.clientX}px`
+    this.element.style.top = `${event.clientY}px`
+    this.object.position.set(intersection.x, objectY, intersection.z)
+
+    this.helperLines.update(this.object.position)
+
+    this.updatePosition()
+
+  }
 
 }

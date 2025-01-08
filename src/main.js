@@ -51,13 +51,14 @@ testPointLight.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.rand
 testSpotLight.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
 testColliderBox.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
 
+scene.add(testPointLight, testSpotLight, testColliderBox)
+
 viewportIcons.push(
   new ViewportIcon("test point light", "point", testPointLight, camera),
   new ViewportIcon("test spot light", "spot", testSpotLight, camera, true),
   new ViewportIcon("test collider volume", "rigidbody", testColliderBox, camera)
 )
 
-scene.add(testPointLight, testSpotLight, testColliderBox)
 
 // render loop
 function animate() {
