@@ -52,6 +52,16 @@ export default class ViewportIcon {
 
     this.iconColor = "#797979"
 
+    this.lineMaterial = new LineMaterial({
+      color: 0xffffff,
+      dashed: true,
+      linewidth: 2,
+      dashSize: 0.1,
+      gapSize: 0.075,
+      transparent: true,
+      opacity: 0
+    })
+
     this.element = this.drawElement()
     this.hierarchyItem = this.setupHierarchy()
     this.yLine = this.drawLine()
@@ -98,6 +108,7 @@ export default class ViewportIcon {
       document.body.style.cursor = "grab"
       this.grabbing = false
       this.helperLines.stop()
+      if (event.target !== this.element) { this.unhover() }
     })
 
   }
@@ -174,21 +185,21 @@ export default class ViewportIcon {
 
   drawLine() {
 
-    const lineMaterial = new LineMaterial({
-      color: 0xffffff,
-      dashed: true,
-      linewidth: 2,
-      dashSize: 0.1,
-      gapSize: 0.075,
-      transparent: true,
-      opacity: 0
-    })
+    // const lineMaterial = new LineMaterial({
+    //   color: 0xffffff,
+    //   dashed: true,
+    //   linewidth: 2,
+    //   dashSize: 0.1,
+    //   gapSize: 0.075,
+    //   transparent: true,
+    //   opacity: 0
+    // })
 
     const lineGeometry = new LineGeometry()
     const points = [new three.Vector3(0, 0, 0), this.groundProjection.position ]
     lineGeometry.setFromPoints(points)
 
-    const line = new Line2(lineGeometry, lineMaterial)
+    const line = new Line2(lineGeometry, this.lineMaterial)
     line.computeLineDistances()
 
     const circlePoints = []
@@ -199,7 +210,7 @@ export default class ViewportIcon {
 
     const circleGeometry = new LineGeometry()
     circleGeometry.setPositions(circlePoints)
-    const circle = new Line2(circleGeometry, lineMaterial)
+    const circle = new Line2(circleGeometry, this.lineMaterial)
     // circle.computeLineDistances() // Required for dashes to work - intentionally misused here
     circle.position.copy(this.groundProjection.position)
 
@@ -239,7 +250,7 @@ export default class ViewportIcon {
 
   hover() {
     document.body.style.cursor = "grab"
-    gsap.to(this.yLine.material, { opacity: 1, linewidth: 2, duration: 0.25 })
+    gsap.to(this.lineMaterial, { opacity: 1, linewidth: 2, duration: 0.25 })
     if (this.boundingBox && !this.selected) {
       this.boundingBox.hover()
     }
@@ -250,8 +261,8 @@ export default class ViewportIcon {
   unhover() {
     if (this.grabbing) { return }
     document.body.style.cursor = "default"
-    if (!this.selected) { gsap.to(this.yLine.material, { opacity: 0, duration: 0.25 })
-    } else { gsap.to(this.yLine.material, { linewidth: 0.5,  duration: 0.25 }) }
+    if (!this.selected) { gsap.to(this.lineMaterial, { opacity: 0, duration: 0.25 })
+    } else { gsap.to(this.lineMaterial, { linewidth: 0.5,  duration: 0.25 }) }
     if (this.boundingBox && !this.selected) {
       this.boundingBox.unhover()
     }
@@ -262,7 +273,7 @@ export default class ViewportIcon {
   toggleSelection() {
 
     if (!this.selected) {
-      gsap.to(this.yLine.material, { linewidth: 0.5, duration: 0.25 })
+      gsap.to(this.lineMaterial, { linewidth: 0.5, duration: 0.25 })
       this.selected = true
       this.element.classList.add("selected")
       this.hierarchyItem.classList.add("selected")
@@ -272,7 +283,7 @@ export default class ViewportIcon {
       }
       new Comment(`selecting ${this.iconName}`)
     } else {
-      gsap.to(this.yLine.material, { linewidth: 2, duration: 0.25 })
+      gsap.to(this.lineMaterial, { linewidth: 2, duration: 0.25 })
       this.selected = false
       this.hierarchyItem.classList.remove("selected")
       this.element.classList.remove("selected")
@@ -316,7 +327,7 @@ export default class ViewportIcon {
       this.object.getWorldPosition(worldPosition)
       this.groundProjection.position.set(0, worldPosition.y * -1, 0)
       this.yLine = this.drawLine()
-      this.yLine.material.opacity = 1
+      this.lineMaterial.opacity = 1
 
       return
 
@@ -324,7 +335,7 @@ export default class ViewportIcon {
 
     if (event.altKey && this.boundingBox) {
       const deltaX = event.clientX - this.cursorStart.x
-      const deltaY = event.clientY - this.cursorStart.y
+      // const deltaY = event.clientY - this.cursorStart.y
       if (delta > 5) {
         this.cursorStart.x = event.clientX
         this.cursorStart.y = event.clientY
