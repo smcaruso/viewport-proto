@@ -1,4 +1,5 @@
 import gsap from "gsap"
+import Comment from "./comment"
 
 export default class ColorPicker {
 
@@ -48,6 +49,7 @@ export default class ColorPicker {
 
     this.icon.iconColor = color
     this.icon.element.style.background = color
+    new Comment(`setting icon color to ${color}`)
 
     if (this.icon.directional && this.icon.arrowElement) {
       this.icon.arrowElement.style.background = color

@@ -49,16 +49,22 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 32px;
+  border-radius: 50%;
   /* cursor: grab; */
   transition: transform 0.25s, box-shadow 0.1s, filter 0.25s, background 0.25s;
   box-shadow: 0 0 24px #00000022;
 }
 
-.viewport-icon.selected,
-.viewport-icon.selected .viewport-arrow {
+.viewport-icon.selected {
   filter: brightness(1.1);
-  box-shadow: 0 0 16px #ffffff59;
+  box-shadow: 0 0 16px #ffffff22;
+  /* border: 0.5px solid white; */
+}
+
+.viewport-icon.selected.gizmo-on {
+  box-shadow: none;
+  opacity: 1;
+  pointer-events: none;
 }
 
 .viewport-icon:not(.selected):hover {
@@ -117,6 +123,32 @@ canvas {
   border-top: 9px solid transparent;
   border-bottom: 9px solid transparent;
   transition: border-left 0.25s;
+}
+
+.viewport-icon .label {
+  position: absolute;
+  left: calc(100% + 1rem);
+  right: unset;
+  max-width: 0;
+  font-family: monospace;
+  font-size: smaller;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  justify-content: start;
+  text-align: left;
+  pointer-events: none;
+  overflow-x: visible;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.viewport-icon .label.left {
+  left: unset;
+  right: calc(100% + 1rem);
+  justify-content: end;
+  text-align: right;
 }
 
 #hierarchy {
@@ -189,6 +221,43 @@ canvas {
   pointer-events: none;
   border-bottom: 0.5px solid white;
   padding-bottom: 0.5rem;
+}
+
+#gizmo-controls {
+  position: absolute;
+  top: 5rem;
+  left: 2rem;
+}
+
+#gizmo-controls input[type="radio"] {
+  appearance: none;
+  width: 2rem;
+  height: 1.25rem;
+  border: 0.5px solid #aaa;
+  border-radius: 6px;
+  display: inline-block;
+  cursor: pointer;
+  transition: background-color 0.25s;
+}
+
+#gizmo-controls input[type="radio"]:checked {
+  /* border-color: #aaa; */
+  background-color: #aaa;
+}
+
+#gizmo-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  text-transform: capitalize;
+}
+
+#gizmo-controls input[type="radio"]:checked + label {
+  font-weight: bold;
+  /* color: #646cff; */
 }
 
 #proto-console {

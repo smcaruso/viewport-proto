@@ -104,6 +104,8 @@ export default class ViewportIcon {
       const delta = Math.abs(event.clientX - this.cursorStart.x) + Math.abs(event.clientY - this.cursorStart.y)
       if (delta < 15) { this.toggleSelection() } 
       this.dragOperationStarted = false
+      const label = this.element.querySelector(".label")
+      label.innerText = this.iconName
       window.removeEventListener("pointermove", this.drag)
       document.body.style.cursor = "grab"
       this.grabbing = false
@@ -161,7 +163,12 @@ export default class ViewportIcon {
     }
 
     svgElement.alt = `${this.iconType} icon`
-    element.appendChild(svgElement)
+
+    const label = document.createElement("div")
+    label.classList.add("label", "title")
+    label.innerText = this.iconName
+
+    element.append(svgElement, label)
 
     return element
 
@@ -184,16 +191,6 @@ export default class ViewportIcon {
   }
 
   drawLine() {
-
-    // const lineMaterial = new LineMaterial({
-    //   color: 0xffffff,
-    //   dashed: true,
-    //   linewidth: 2,
-    //   dashSize: 0.1,
-    //   gapSize: 0.075,
-    //   transparent: true,
-    //   opacity: 0
-    // })
 
     const lineGeometry = new LineGeometry()
     const points = [new three.Vector3(0, 0, 0), this.groundProjection.position ]
@@ -245,6 +242,11 @@ export default class ViewportIcon {
           const angle = Math.atan2(dy, dx) * (180 / Math.PI)
   
           this.arrowElement.style.transform = `rotate(${angle}deg) translate(32px)`
+
+          const label = this.element.querySelector(".label")
+          if (Math.abs(angle) < 35) label.classList.add("left")
+          else label.classList.remove("left")
+
       }
   }
 
@@ -253,19 +255,28 @@ export default class ViewportIcon {
     gsap.to(this.lineMaterial, { opacity: 1, linewidth: 2, duration: 0.25 })
     if (this.boundingBox && !this.selected) {
       this.boundingBox.hover()
+      new Comment(`highlighting volume bounding box`)
     }
 
+    const label = this.element.querySelector(".label")
+    label.style.opacity = 1
+
     new Comment(`hovering ${this.iconName}`)
+    new Comment(`showing Y-axis offset indicator`)
   }
 
   unhover() {
     if (this.grabbing) { return }
     document.body.style.cursor = "default"
-    if (!this.selected) { gsap.to(this.lineMaterial, { opacity: 0, duration: 0.25 })
+    if (!this.selected) {
+      gsap.to(this.lineMaterial, { opacity: 0, duration: 0.25 })
+      const label = this.element.querySelector(".label")
+      label.style.opacity = 0
     } else { gsap.to(this.lineMaterial, { linewidth: 0.5,  duration: 0.25 }) }
     if (this.boundingBox && !this.selected) {
       this.boundingBox.unhover()
     }
+
 
     new Comment(`unhovering ${this.iconName}`)
   }
@@ -300,7 +311,6 @@ export default class ViewportIcon {
     event.preventDefault()
     new ColorPicker(this, event)
     new Comment(`opening color picker`)
-
   }
 
   drag(event) {
@@ -311,6 +321,9 @@ export default class ViewportIcon {
     if (!this.grabbing || (delta < 20 && !this.dragOperationStarted)) { return }
 
     this.dragOperationStarted = true
+
+    const label = this.element.querySelector(".label")
+    label.innerText = `(${this.object.position.x.toFixed(2)}, ${this.object.position.y.toFixed(2)}, ${this.object.position.z.toFixed(2)})`
 
     if (event.shiftKey) {
       

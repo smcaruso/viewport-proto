@@ -1,7 +1,9 @@
 import './style.css'
 import * as three from "three"
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import ViewportIcon from './viewportIcon'
+import { viewport } from 'three/tsl'
 
 const appContainer = document.querySelector('#app')
 const viewportIcons = []
@@ -40,6 +42,39 @@ camera.position.set( 5, 5, 5 )
 controls.target.set(0, 0, 0)
 controls.update()
 
+// set up transform controls
+const gizmoControls = new TransformControls( camera, renderer.domElement )
+const gizmoToggles = document.querySelectorAll('#gizmo-controls input[type="radio"]');
+gizmoControls.size = 0.5
+
+gizmoControls.addEventListener( 'dragging-changed', function ( event ) {
+  controls.enabled = ! event.value;
+} )
+
+gizmoToggles.forEach((toggle) => {
+    toggle.addEventListener('change', (event) => {
+      const gizmo = gizmoControls.getHelper();
+      if (event.target.value === "none") {
+        gizmo.removeFromParent()
+        viewportIcons.forEach(icon => {
+          icon.element.classList.remove("gizmo-on")
+          icon.element.style.background = icon.iconColor
+        })
+        return
+      }
+        for (const icon of viewportIcons) {
+          if (icon.selected === true) {
+            gizmoControls.attach(icon.object)
+            gizmoControls.setMode(event.target.value)
+            icon.element.style.background = null
+            icon.element.classList.add("gizmo-on")
+				    scene.add( gizmo )
+            break
+          }
+        }
+    })
+})
+
 // test object setup
 
 const testPointLight = new three.Object3D()
@@ -58,7 +93,6 @@ viewportIcons.push(
   new ViewportIcon("test spot light", "spot", testSpotLight, camera, true),
   new ViewportIcon("test collider volume", "rigidbody", testColliderBox, camera)
 )
-
 
 // render loop
 function animate() {
