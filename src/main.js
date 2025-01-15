@@ -3,7 +3,7 @@ import * as three from "three"
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import ViewportIcon from './viewportIcon'
-import { viewport } from 'three/tsl'
+import Model from './model'
 
 const appContainer = document.querySelector('#app')
 const viewportIcons = []
@@ -20,6 +20,15 @@ renderer.setClearColor(0x242424, 0)
 renderer.setPixelRatio(window.devicePixelRatio);
 scene.fog = new three.Fog(0x242424, 5, 100)
 renderer.antialias = true
+
+// lighting for preview model
+
+const ambientLight = new three.AmbientLight(0xffffff, 0.5)
+const directionalLight = new three.DirectionalLight(0xffffff, 1.0)
+directionalLight.position.set(5, 10, 5)
+scene.add(ambientLight)
+
+scene.add(ambientLight, directionalLight)
 
 // event listener to auto-resize the renderer when the window is resized
 window.addEventListener('resize', () => {
@@ -58,6 +67,7 @@ gizmoToggles.forEach((toggle) => {
       gizmoControls.setMode(event.target.value)
       if (event.target.value === "none") {
         gizmo.removeFromParent()
+        gizmoControls.detach()
         viewportIcons.forEach(icon => {
           icon.element.classList.remove("gizmo-on")
           icon.element.style.background = icon.iconColor
@@ -81,18 +91,33 @@ gizmoToggles.forEach((toggle) => {
 const testPointLight = new three.Object3D()
 const testSpotLight = new three.Object3D()
 const testColliderBox = new three.Object3D()
+const testSpawnPoint = new three.Object3D()
+const testCamera = new three.Object3D()
+const testMesh = new Model()
 
 // move test objects to random positions between -5 and 5 in the x and z azes and 0-2 in the y axis
 testPointLight.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
 testSpotLight.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
 testColliderBox.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
+testCamera.position.set(Math.random() * 10 - 5, Math.random() * 5, Math.random() * 10 - 5)
+testMesh.position.set(Math.random() * 10 - 5, 1.54041 * 0.5, Math.random() * 10 - 5)
 
-scene.add(testPointLight, testSpotLight, testColliderBox)
+testSpotLight.rotateX(Math.random() * Math.PI)
+testSpotLight.rotateY(Math.random() * Math.PI)
+testCamera.rotateY(Math.random() * Math.PI)
+testMesh.rotateY(Math.random() * Math.PI)
+
+testSpawnPoint.position.set(0, 1.5, -5)
+
+scene.add(testPointLight, testSpotLight, testColliderBox, testSpawnPoint, testCamera, testMesh)
 
 viewportIcons.push(
   new ViewportIcon("test point light", "point", testPointLight, camera),
   new ViewportIcon("test spot light", "spot", testSpotLight, camera, true),
-  new ViewportIcon("test collider volume", "rigidbody", testColliderBox, camera)
+  new ViewportIcon("test collider volume", "trigger", testColliderBox, camera),
+  new ViewportIcon("test spawn point", "spawnpoint", testSpawnPoint, camera, true),
+  new ViewportIcon("test camera", "camera", testCamera, camera, true),
+  new ViewportIcon("test mesh collider", "rigidbody", testMesh, camera)
 )
 
 const cursorStart = {x: 0, y: 0}

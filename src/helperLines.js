@@ -5,6 +5,8 @@ import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js"
 
 import gsap from "gsap"
 
+import Comment from "./comment"
+
 // disclaimer: this class was written almost entirely by chatGPT.
 
 export default class HelperLines {
@@ -80,6 +82,7 @@ export default class HelperLines {
         gsap.to(this.xMaterial, { opacity: 1, duration: 0.5 })
         gsap.to(this.zMaterial, { opacity: 1, duration: 0.5 })
         this.update(position)
+        new Comment(`HelperLines.start(${position.x}, ${position.z})`)
     }
 
     /**
@@ -116,6 +119,8 @@ export default class HelperLines {
     stop() {
       gsap.to(this.xMaterial, { opacity: 0, duration: 0.5 })
       gsap.to(this.zMaterial, { opacity: 0, duration: 0.5 })
-
+      if (this.object.position.x !== 0) {
+        new Comment(`HelperLines.stop(${this.object.position.x}, ${this.object.position.z})`)
+      }
     }
 }

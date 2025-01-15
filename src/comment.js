@@ -7,7 +7,7 @@ export default class Comment {
     this.message.classList.add("message")
     this.message.innerText = comment
 
-    this.console.append(this.message)
+    if (this.console.lastChild.innerText !== comment) { this.console.append(this.message) }
 
   }
 

@@ -15,7 +15,7 @@ export default class ColorPicker {
 
     this.icon = icon
 
-    console.log("color picker created")
+    new Comment("new ColorPicker()")
 
     this.drawPicker(event.pageX, event.pageY)
 

@@ -78,12 +78,24 @@ export default class ViewportIcon {
 
     this.boundingBox = null
 
-    if (type === "rigidbody") {
+    if (type === "trigger") {
       this.boundingBox = new BoundingBox(2, 2, 1)
       this.object.add(this.boundingBox)
     }
 
-    if (this.directional) {
+    if (type === "rigidbody") {
+      this.boundingBox = new BoundingBox(1.65478, 1.15253, 1.54041)
+      this.element.classList.add("no-bg")
+      this.object.add(this.boundingBox)
+    }
+
+    if (type === "spawnpoint") {
+      this.boundingBox = new BoundingBox(1, 1, 2)
+      this.boundingBox.translateY(-0.5)
+      this.object.add(this.boundingBox)
+    }
+
+    if (this.directional && (type === "spot" || type === "camera")) {
       this.cone = this.drawCone()
       this.object.add(this.cone)
     }
@@ -202,7 +214,9 @@ export default class ViewportIcon {
 
   drawCone() {
 
-    const geometry = new three.ConeGeometry(2, 6, 12, 1, true)
+    const radialSegments = this.iconType === "camera" ? 4 : 12
+
+    const geometry = new three.ConeGeometry(2, 6, radialSegments, 1, true, 0.775)
     const material = new three.MeshBasicMaterial({ color: 0x696969, wireframe: true, transparent: true, opacity: 0 })
 
     const cone = new three.Mesh(geometry, material)
@@ -274,14 +288,12 @@ export default class ViewportIcon {
     }
     if (this.boundingBox && !this.selected) {
       this.boundingBox.hover()
-      new Comment(`highlighting volume bounding box`)
     }
 
     const label = this.element.querySelector(".label")
     label.style.opacity = 1
 
-    new Comment(`hovering ${this.iconName}`)
-    new Comment(`showing Y-axis offset indicator`)
+    new Comment("ViewportIcon.hover()")
   }
 
   unhover() {
@@ -298,7 +310,7 @@ export default class ViewportIcon {
     }
 
 
-    new Comment(`unhovering ${this.iconName}`)
+    new Comment("ViewportIcon.unhover()")
   }
 
   toggleSelection() {
@@ -324,7 +336,7 @@ export default class ViewportIcon {
       if (this.boundingBox) {
         this.boundingBox.unhover()
       }
-      new Comment(`unselecting ${this.iconName}`)
+      new Comment("ViewportIcon.toggleSelection()")
 
     }
 
@@ -333,7 +345,7 @@ export default class ViewportIcon {
   rightClick(event) {
     event.preventDefault()
     new ColorPicker(this, event)
-    new Comment(`opening color picker`)
+    new Comment("ViewportIcon.rightClick('contextmenu')")
   }
 
   drag(event) {

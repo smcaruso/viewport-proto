@@ -67,6 +67,13 @@ canvas {
   pointer-events: none;
 }
 
+.viewport-icon.no-bg {
+  background: none !important;
+  box-shadow: none;
+  width: 128px;
+  height: 128px
+}
+
 .viewport-icon:not(.selected):hover {
   transform-origin: center;
   transform: translate(-50%, -50%) scale(1.1);
@@ -83,7 +90,7 @@ canvas {
 }
 
 .viewport-icon.selected.gizmo-on img {
-  filter: drop-shadow(0 0 12px #000000);
+  filter: drop-shadow(0 0 8px #000000);
 }
 
 .viewport-line {
