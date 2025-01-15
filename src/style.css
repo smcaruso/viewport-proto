@@ -82,6 +82,10 @@ canvas {
   pointer-events: none;
 }
 
+.viewport-icon.selected.gizmo-on img {
+  filter: drop-shadow(0 0 12px #000000);
+}
+
 .viewport-line {
   position: absolute;
   border-left: 1px dashed #ffffff;
@@ -101,6 +105,10 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.viewport-icon.selected.gizmo-on .viewport-arrow {
+  display: none;
 }
 
 .viewport-arrow {

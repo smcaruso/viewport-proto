@@ -83,35 +83,17 @@ export default class ViewportIcon {
       this.object.add(this.boundingBox)
     }
 
+    if (this.directional) {
+      this.cone = this.drawCone()
+      this.object.add(this.cone)
+    }
+
     document.querySelector("#app").appendChild(this.element)
 
     this.element.addEventListener("pointerenter", this.hover.bind(this))
     this.element.addEventListener("pointerleave", this.unhover.bind(this))
     this.element.addEventListener("contextmenu", this.rightClick.bind(this))
-    this.element.addEventListener("pointerdown", (event) => {
-
-      this.cursorStart.x = event.clientX
-      this.cursorStart.y = event.clientY
-      this.cursorStartObjectY = this.object.position.y
-
-      window.addEventListener("pointermove", this.drag)
-      document.body.style.cursor = "grabbing"
-      this.grabbing = true
-      this.helperLines.start(this.object.position)
-    })
-
-    window.addEventListener("pointerup", (event) => {
-      const delta = Math.abs(event.clientX - this.cursorStart.x) + Math.abs(event.clientY - this.cursorStart.y)
-      if (delta < 15) { this.toggleSelection() } 
-      this.dragOperationStarted = false
-      const label = this.element.querySelector(".label")
-      label.innerText = this.iconName
-      window.removeEventListener("pointermove", this.drag)
-      document.body.style.cursor = "grab"
-      this.grabbing = false
-      this.helperLines.stop()
-      if (event.target !== this.element) { this.unhover() }
-    })
+    window.addEventListener("pointermove", this.drag)
 
   }
 
@@ -182,7 +164,7 @@ export default class ViewportIcon {
     hierarchyItem.textContent = this.iconName
     hierarchy.appendChild(hierarchyItem)
 
-    hierarchyItem.addEventListener("click",this.toggleSelection.bind(this))
+    hierarchyItem.addEventListener("click", this.toggleSelection.bind(this))
     hierarchyItem.addEventListener("pointerenter", this.hover.bind(this))
     hierarchyItem.addEventListener("pointerleave", this.unhover.bind(this))
 
@@ -193,32 +175,65 @@ export default class ViewportIcon {
   drawLine() {
 
     const lineGeometry = new LineGeometry()
-    const points = [new three.Vector3(0, 0, 0), this.groundProjection.position ]
-    lineGeometry.setFromPoints(points)
+    const positions = [0, 0, 0, 0, 0, 0]
+    lineGeometry.setPositions(positions)
 
     const line = new Line2(lineGeometry, this.lineMaterial)
     line.computeLineDistances()
 
     const circlePoints = []
     for (let i = 0; i <= 16; i++) {
-        const angle = (i / 16) * Math.PI * 2
-        circlePoints.push(0.1 * Math.cos(angle), 0, 0.1 * Math.sin(angle))
+      const angle = (i / 16) * Math.PI * 2
+      circlePoints.push(0.1 * Math.cos(angle), 0, 0.1 * Math.sin(angle))
     }
-
+    
     const circleGeometry = new LineGeometry()
     circleGeometry.setPositions(circlePoints)
     const circle = new Line2(circleGeometry, this.lineMaterial)
     // circle.computeLineDistances() // Required for dashes to work - intentionally misused here
     circle.position.copy(this.groundProjection.position)
-
-    this.object.add(line, circle)
+    
+    line.add(circle)
+    this.object.parent.add(line)
 
     return line
+
+  }
+
+  drawCone() {
+
+    const geometry = new three.ConeGeometry(2, 6, 12, 1, true)
+    const material = new three.MeshBasicMaterial({ color: 0x696969, wireframe: true, transparent: true, opacity: 0 })
+
+    const cone = new three.Mesh(geometry, material)
+
+    cone.position.set(0, 0, 3)
+    cone.rotation.x = Math.PI * -0.5
+
+    return cone;
+
   }
 
   updatePosition(force = false) {
 
         if (this.grabbing && !force) { return }
+
+        const worldPosition = new three.Vector3()
+        this.object.getWorldPosition(worldPosition)
+
+        // ✅ Ensure yLine exists before updating
+        if (this.yLine && this.yLine.geometry) {
+            const positions = this.yLine.geometry.attributes.position.array
+            positions[0] = worldPosition.x
+            positions[1] = worldPosition.y
+            positions[2] = worldPosition.z
+            positions[3] = worldPosition.x
+            positions[4] = 0 // ✅ Always at ground level (y = 0)
+            positions[5] = worldPosition.z
+            this.yLine.geometry.setPositions(positions)
+            this.yLine.computeLineDistances()
+            this.yLine.children[0].position.set(worldPosition.x, 0, worldPosition.z)
+        }
 
         const pos = new three.Vector3()
         pos.setFromMatrixPosition(this.object.matrixWorld)
@@ -253,6 +268,10 @@ export default class ViewportIcon {
   hover() {
     document.body.style.cursor = "grab"
     gsap.to(this.lineMaterial, { opacity: 1, linewidth: 2, duration: 0.25 })
+    if (this.cone && !this.selected) {
+      this.cone.material.color.set(0xF3A2FF)
+      gsap.to(this.cone.material, { opacity: 1, duration: 0.5 })
+    }
     if (this.boundingBox && !this.selected) {
       this.boundingBox.hover()
       new Comment(`highlighting volume bounding box`)
@@ -270,6 +289,7 @@ export default class ViewportIcon {
     document.body.style.cursor = "default"
     if (!this.selected) {
       gsap.to(this.lineMaterial, { opacity: 0, duration: 0.25 })
+      if (this.cone) { gsap.to(this.cone.material, { opacity: 0, duration: 0.5 }) }
       const label = this.element.querySelector(".label")
       label.style.opacity = 0
     } else { gsap.to(this.lineMaterial, { linewidth: 0.5,  duration: 0.25 }) }
@@ -291,6 +311,9 @@ export default class ViewportIcon {
       if (this.boundingBox) {
         this.boundingBox.hover()
         this.boundingBox.select()
+      }
+      if (this.cone) {
+        this.cone.material.color.set(0xFFFFFF)
       }
       new Comment(`selecting ${this.iconName}`)
     } else {
@@ -339,21 +362,21 @@ export default class ViewportIcon {
       let worldPosition = new three.Vector3()
       this.object.getWorldPosition(worldPosition)
       this.groundProjection.position.set(0, worldPosition.y * -1, 0)
-      this.yLine = this.drawLine()
+      // this.yLine = this.drawLine()
       this.lineMaterial.opacity = 1
 
       return
 
     }
 
-    if (event.altKey && this.boundingBox) {
+    if (event.altKey) {
       const deltaX = event.clientX - this.cursorStart.x
       // const deltaY = event.clientY - this.cursorStart.y
       if (delta > 5) {
         this.cursorStart.x = event.clientX
         this.cursorStart.y = event.clientY
       }
-      deltaX > 0 ? this.boundingBox.rotateY(Math.PI * 0.02) : this.boundingBox.rotateY(Math.PI * -0.02)
+      deltaX > 0 ? this.object.rotateY(Math.PI * 0.01) : this.object.rotateY(Math.PI * -0.01)
       return
 
     }

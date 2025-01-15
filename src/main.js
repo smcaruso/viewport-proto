@@ -44,8 +44,9 @@ controls.update()
 
 // set up transform controls
 const gizmoControls = new TransformControls( camera, renderer.domElement )
-const gizmoToggles = document.querySelectorAll('#gizmo-controls input[type="radio"]');
+const gizmoToggles = document.querySelectorAll('#gizmo-controls input[type="radio"]')
 gizmoControls.size = 0.5
+gizmoControls.setMode("none")
 
 gizmoControls.addEventListener( 'dragging-changed', function ( event ) {
   controls.enabled = ! event.value;
@@ -53,7 +54,8 @@ gizmoControls.addEventListener( 'dragging-changed', function ( event ) {
 
 gizmoToggles.forEach((toggle) => {
     toggle.addEventListener('change', (event) => {
-      const gizmo = gizmoControls.getHelper();
+      const gizmo = gizmoControls.getHelper()
+      gizmoControls.setMode(event.target.value)
       if (event.target.value === "none") {
         gizmo.removeFromParent()
         viewportIcons.forEach(icon => {
@@ -62,16 +64,15 @@ gizmoToggles.forEach((toggle) => {
         })
         return
       }
-        for (const icon of viewportIcons) {
-          if (icon.selected === true) {
-            gizmoControls.attach(icon.object)
-            gizmoControls.setMode(event.target.value)
-            icon.element.style.background = null
-            icon.element.classList.add("gizmo-on")
-				    scene.add( gizmo )
-            break
-          }
+      for (const icon of viewportIcons) {
+        if (icon.selected === true) {
+          gizmoControls.attach(icon.object)
+          icon.element.style.background = null
+          icon.element.classList.add("gizmo-on")
+			    scene.add( gizmo )
+          break
         }
+      }
     })
 })
 
@@ -93,6 +94,79 @@ viewportIcons.push(
   new ViewportIcon("test spot light", "spot", testSpotLight, camera, true),
   new ViewportIcon("test collider volume", "rigidbody", testColliderBox, camera)
 )
+
+const cursorStart = {x: 0, y: 0}
+
+viewportIcons.forEach(icon => {
+
+  icon.element.addEventListener("pointerdown", (event) => {
+
+    cursorStart.x = event.clientX
+    cursorStart.y = event.clientY
+  
+    icon.cursorStart.x = event.clientX
+    icon.cursorStart.y = event.clientY
+    icon.cursorStartObjectY = icon.object.position.y
+  
+    document.body.style.cursor = "grabbing"
+    icon.grabbing = true
+    icon.helperLines.start(icon.object.position)
+  })
+
+})
+
+window.addEventListener("pointerup", (event) => {
+
+  let icon = null
+
+  viewportIcons.forEach( each => {
+    each.dragOperationStarted = false
+    each.grabbing = false
+    each.helperLines.stop()
+  })
+
+  if (event.target.classList.contains("viewport-icon")) {
+    document.body.style.cursor = "grab"
+    for (const index in viewportIcons) {
+      if (viewportIcons[index].element === event.target) {
+        icon = viewportIcons[index]
+        const label = icon.element.querySelector(".label")
+        label.innerText = icon.iconName
+        break
+      } else {
+        viewportIcons[index].element.classList.remove("gizmo-on")
+        viewportIcons[index].element.background = viewportIcons[index].iconColor
+      }
+    }
+  }
+  const delta = Math.abs(event.clientX - cursorStart.x) + Math.abs(event.clientY - cursorStart.y)
+  if (delta < 15) {
+    viewportIcons.forEach( each => {
+      each.element.style.background = each.iconColor
+      each.element.classList.remove("gizmo-on")
+    })
+  }
+  if (delta < 15 && icon && (event.ctrlKey || event.metaKey)) { icon.toggleSelection() }
+  else if (delta < 15 && icon && !event.shiftKey) {
+    viewportIcons.forEach( each => {
+      if (each === icon || each.selected) {
+        each.toggleSelection()
+        if ((event.target !== each.element) && (event.target !== each.hierarchyItem)) { each.unhover() }
+      }
+    })
+  }
+  else if (delta > 15 && !event.target.classList.contains("viewport-icon")) { viewportIcons.forEach(each => each.unhover())}
+
+  const gizmo = gizmoControls.getHelper()
+
+  if (gizmoControls.mode !== "none" && icon) {
+    gizmoControls.attach(icon.object)
+    icon.element.style.background = null
+    icon.element.classList.add("gizmo-on")
+    scene.add( gizmo )
+  }
+
+})
 
 // render loop
 function animate() {
